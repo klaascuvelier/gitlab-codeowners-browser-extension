@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Gitlab Codeowners Helper",
+  "description": "Browser extension to make reviewing merge-request for code owners easier",
+  "version": "0.1",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "index.html"
+  }
+}
