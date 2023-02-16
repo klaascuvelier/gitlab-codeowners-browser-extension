@@ -1,90 +1,113 @@
 {
-  "name": "gitlab-codeowners-browser-extension",
-  "$schema": "node_modules/nx/schemas/project-schema.json",
-  "projectType": "application",
-  "sourceRoot": "./src",
-  "prefix": "gitlab-codeowners-browser-extension",
-  "targets": {
-    "build": {
-      "executor": "@angular-devkit/build-angular:browser",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/gitlab-codeowners-browser-extension",
-        "index": "./src/index.html",
-        "main": "./src/main.ts",
-        "polyfills": ["zone.js"],
-        "tsConfig": "./tsconfig.app.json",
-        "inlineStyleLanguage": "scss",
-        "assets": ["./src/favicon.ico", "./src/assets", "./src/manifest.json"],
-        "styles": ["./src/styles.scss"],
-        "scripts": []
-      },
-      "configurations": {
-        "production": {
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "500kb",
-              "maximumError": "1mb"
+    "name": "gitlab-codeowners-browser-extension",
+    "$schema": "node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "sourceRoot": "./src",
+    "prefix": "gitlab-codeowners-browser-extension",
+    "targets": {
+        "build": {
+            "executor": "./tooling/nx-chrome-extension-executor:build",
+            "outputs": ["{options.outputPath}"],
+            "options": {
+                "outputPath": "dist/gitlab-codeowners-browser-extension",
+                "index": "./src/index.html",
+                "main": "./src/main.ts",
+                "polyfills": ["zone.js"],
+                "tsConfig": "./tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": ["./src/favicon.ico", "./src/assets"],
+                "styles": ["./src/styles.scss"],
+                "scripts": [],
+                "extensionDetails": {
+                    "version": 3,
+                    "name": "GitLab Codeowners",
+                    "description": "GitLab Codeowners",
+                    "permissions": [
+                        "activeTab",
+                        "scripting",
+                        "webNavigation",
+                        "storage"
+                    ],
+                    "host_permissions": ["http://*/", "https://*/"],
+                    "web_accessible_resources": [
+                        {
+                            "resources": ["index.html", "*.js"],
+                            "matches": ["https://gitlab.showpad.io/*"]
+                        }
+                    ],
+                    "background": {
+                        "service_worker": {
+                            "input": "service_worker.ts",
+                            "output": "service_worker.js"
+                        },
+                        "type": "module"
+                    },
+                    "content": {
+                        "input": "content.ts",
+                        "output": "content.js"
+                    }
+                }
             },
-            {
-              "type": "anyComponentStyle",
-              "maximumWarning": "2kb",
-              "maximumError": "4kb"
+            "configurations": {
+                "production": {
+                    "budgets": [
+                        {
+                            "type": "initial",
+                            "maximumWarning": "500kb",
+                            "maximumError": "1mb"
+                        },
+                        {
+                            "type": "anyComponentStyle",
+                            "maximumWarning": "2kb",
+                            "maximumError": "4kb"
+                        }
+                    ],
+                    "outputHashing": "all"
+                },
+                "development": {
+                    "buildOptimizer": false,
+                    "optimization": false,
+                    "vendorChunk": true,
+                    "extractLicenses": false,
+                    "sourceMap": true,
+                    "namedChunks": true
+                }
+            },
+            "defaultConfiguration": "production"
+        },
+        "serve": {
+            "executor": "@angular-devkit/build-angular:dev-server",
+            "configurations": {
+                "production": {
+                    "browserTarget": "gitlab-codeowners-browser-extension:build:production"
+                },
+                "development": {
+                    "browserTarget": "gitlab-codeowners-browser-extension:build:development"
+                }
+            },
+            "defaultConfiguration": "development"
+        },
+        "lint": {
+            "executor": "@nrwl/linter:eslint",
+            "outputs": ["{options.outputFile}"],
+            "options": {
+                "lintFilePatterns": ["./src/**/*.ts", "./src/**/*.html"]
             }
-          ],
-          "outputHashing": "all"
         },
-        "development": {
-          "buildOptimizer": false,
-          "optimization": false,
-          "vendorChunk": true,
-          "extractLicenses": false,
-          "sourceMap": true,
-          "namedChunks": true
+        "test": {
+            "executor": "@nrwl/jest:jest",
+            "outputs": ["{workspaceRoot}/coverage/{projectName}"],
+            "options": {
+                "jestConfig": "jest.config.ts",
+                "passWithNoTests": true
+            },
+            "configurations": {
+                "ci": {
+                    "ci": true,
+                    "codeCoverage": true
+                }
+            }
         }
-      },
-      "defaultConfiguration": "production"
     },
-    "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
-      "configurations": {
-        "production": {
-          "browserTarget": "gitlab-codeowners-browser-extension:build:production"
-        },
-        "development": {
-          "browserTarget": "gitlab-codeowners-browser-extension:build:development"
-        }
-      },
-      "defaultConfiguration": "development"
-    },
-    "extract-i18n": {
-      "executor": "@angular-devkit/build-angular:extract-i18n",
-      "options": {
-        "browserTarget": "gitlab-codeowners-browser-extension:build"
-      }
-    },
-    "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["./src/**/*.ts", "./src/**/*.html"]
-      }
-    },
-    "test": {
-      "executor": "@nrwl/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectName}"],
-      "options": {
-        "jestConfig": "jest.config.ts",
-        "passWithNoTests": true
-      },
-      "configurations": {
-        "ci": {
-          "ci": true,
-          "codeCoverage": true
-        }
-      }
-    }
-  },
-  "tags": []
+    "tags": []
 }
