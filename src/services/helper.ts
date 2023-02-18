@@ -9,6 +9,34 @@ export class HelperService {
 
     private gitlabService = inject(GitlabService);
 
+    getMergeRequestChanges(url: string): Observable<unknown> {
+        if (!HelperService.mergeRequestRegexp.test(url)) {
+            return EMPTY;
+        }
+
+        const [, namespace, project, mergeRequestId] =
+            url.match(
+                /([a-z0-9\\-]+)\/([a-z0-9\\-]+)\/-\/merge_requests\/(\d+)/
+            ) ?? [];
+
+        return this.gitlabService
+            .getProjectIdByProjectSlug(namespace, project)
+            .pipe(
+                switchMap((projectId) => {
+                    if (!projectId) {
+                        return throwError(
+                            () => new Error(`Project "${project}" not found`)
+                        );
+                    }
+
+                    return this.gitlabService.getMergeRequestChanges(
+                        projectId + '',
+                        parseInt(mergeRequestId, 10)
+                    );
+                })
+            );
+    }
+
     getMyRequiredApprovals(url: string): Observable<unknown> {
         if (!HelperService.mergeRequestRegexp.test(url)) {
             return EMPTY;

@@ -20,6 +20,22 @@ export class GitlabService {
         });
     }
 
+    getMergeRequestChanges(
+        projectId: string,
+        mergeRequestId: number
+    ): Observable<Types.MergeRequestSchema> {
+        return new Observable((subscriber) => {
+            this.gitlab.MergeRequests.changes(projectId, mergeRequestId)
+                .then((response) => {
+                    subscriber.next(response);
+                    subscriber.complete();
+                })
+                .catch((error) => {
+                    subscriber.error(error);
+                });
+        });
+    }
+
     getUser(): Observable<Types.UserSchema> {
         return new Observable((subscriber) => {
             this.gitlab.Users.current()

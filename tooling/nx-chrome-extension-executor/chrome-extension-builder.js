@@ -35,7 +35,7 @@ function createManifest(options) {
         host_permissions: extensionDetails.host_permissions,
         web_accessible_resources: extensionDetails.web_accessible_resources,
         action: {
-            default_popup: 'index.html',
+            default_popup: 'index.html?popup=1',
         },
         background: {
             service_worker: extensionDetails.background.service_worker.output,
