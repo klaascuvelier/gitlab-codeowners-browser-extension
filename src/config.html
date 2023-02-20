@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>GitlabCodeownersBrowserExtension</title>
+        <base href="/" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    </head>
+    <body>
+        <form submit="store(evt)">
+            <label>
+                Host:
+                <input type="text" id="host" value="https://gitlab.com" />
+            </label>
+
+            <label>
+                Token:
+                <input type="password" id="token" value="" />
+            </label>
+
+            <button type="submit">Store</button>
+        </form>
+
+        <script src="./config.js"></script>
+    </body>
+</html>

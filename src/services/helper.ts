@@ -1,77 +1,61 @@
-import { inject, Injectable } from '@angular/core';
-import { EMPTY, forkJoin, map, Observable, switchMap, throwError } from 'rxjs';
-import { GitlabService } from './gitlab';
+import { Gitlab } from '@gitbeaker/browser';
 
-@Injectable({ providedIn: 'root' })
+export type HelperConfig = { host: string; token: string };
+
 export class HelperService {
     private static mergeRequestRegexp =
         /([a-z0-9\\-]+)\/([a-z0-9\\-]+)\/-\/merge_requests\/(\d+)/;
 
-    private gitlabService = inject(GitlabService);
+    constructor(private config: HelperConfig) {}
 
-    getMergeRequestChanges(url: string): Observable<unknown> {
+    async getMyRequiredApprovals(url: string) {
+        const a = require('../tmp.json');
+        return a;
+
+        const gitlab = new Gitlab({
+            host: this.config.host,
+            token: this.config.token,
+        });
+
         if (!HelperService.mergeRequestRegexp.test(url)) {
-            return EMPTY;
+            return null;
         }
 
-        const [, namespace, project, mergeRequestId] =
+        const [, namespace, projectName, mergeRequestId] =
             url.match(
                 /([a-z0-9\\-]+)\/([a-z0-9\\-]+)\/-\/merge_requests\/(\d+)/
             ) ?? [];
 
-        return this.gitlabService
-            .getProjectIdByProjectSlug(namespace, project)
-            .pipe(
-                switchMap((projectId) => {
-                    if (!projectId) {
-                        return throwError(
-                            () => new Error(`Project "${project}" not found`)
-                        );
-                    }
-
-                    return this.gitlabService.getMergeRequestChanges(
-                        projectId + '',
-                        parseInt(mergeRequestId, 10)
-                    );
-                })
-            );
-    }
-
-    getMyRequiredApprovals(url: string): Observable<unknown> {
-        if (!HelperService.mergeRequestRegexp.test(url)) {
-            return EMPTY;
-        }
-
-        const [, namespace, project, mergeRequestId] =
-            url.match(
-                /([a-z0-9\\-]+)\/([a-z0-9\\-]+)\/-\/merge_requests\/(\d+)/
-            ) ?? [];
-
-        const approvalRules$ = this.gitlabService
-            .getProjectIdByProjectSlug(namespace, project)
-            .pipe(
-                switchMap((projectId) => {
-                    if (!projectId) {
-                        return throwError(
-                            () => new Error(`Project "${project}" not found`)
-                        );
-                    }
-
-                    return this.gitlabService.getMergeRequestApprovalRules(
-                        projectId,
-                        parseInt(mergeRequestId, 10)
-                    );
-                })
-            );
-
-        return forkJoin([approvalRules$, this.gitlabService.getUser()]).pipe(
-            map(([rules, user]) => {
-                return rules.filter((rule) =>
-                    rule.eligible_approvers?.some(
-                        (approver) => approver.id === user.id
-                    )
+        const project = await gitlab.Projects.search(projectName).then(
+            (response) => {
+                return (
+                    response.find(
+                        (item) =>
+                            item.name.toLocaleLowerCase() ===
+                                projectName.toLocaleLowerCase() &&
+                            item.namespace.name.toLocaleLowerCase() ===
+                                namespace.toLocaleLowerCase()
+                    ) ?? null
                 );
-            })
+            }
         );
+
+        if (!project) {
+            return;
+        }
+
+        const [approvalRules, user] = await Promise.all([
+            gitlab.MergeRequestApprovals.approvalRules(project.id, {
+                mergerequestIid: parseInt(mergeRequestId, 10),
+            }),
+            gitlab.Users.current(),
+        ]);
+
+        return (approvalRules ?? []).filter((rule) => {
+            return (
+                rule.rule_type === 'code_owner' &&
+                (rule.users ?? []).some((item) => item.id === user.id)
+            );
+        });
     }
 }

@@ -9,6 +9,7 @@ chrome.webNavigation.onCompleted.addListener(function ({
             .get(['host'])
             .then((result: Record<string, unknown>) => result['host']),
     ]).then(([tab, host]) => {
+        console.log(tab, host, 'GO OGO');
         if (url.startsWith(host) && url.endsWith('/diffs')) {
             console.log('Bootstrapping extension...');
             chrome.scripting.executeScript({
@@ -18,3 +19,4 @@ chrome.webNavigation.onCompleted.addListener(function ({
         }
     });
 });
+console.log('start');

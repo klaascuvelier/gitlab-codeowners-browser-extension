@@ -1,11 +1,6 @@
-import { inject, Injectable, NgZone } from '@angular/core';
 import { Gitlab, Types } from '@gitbeaker/browser';
-import { Observable } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
 export class GitlabService {
-    ngZone = inject(NgZone);
-
     token: string | null = null;
     host: string | null = null;
 
@@ -23,61 +18,8 @@ export class GitlabService {
     getMergeRequestChanges(
         projectId: string,
         mergeRequestId: number
-    ): Observable<Types.MergeRequestSchema> {
-        return new Observable((subscriber) => {
-            this.gitlab.MergeRequests.changes(projectId, mergeRequestId)
-                .then((response) => {
-                    subscriber.next(response);
-                    subscriber.complete();
-                })
-                .catch((error) => {
-                    subscriber.error(error);
-                });
-        });
-    }
-
-    getUser(): Observable<Types.UserSchema> {
-        return new Observable((subscriber) => {
-            this.gitlab.Users.current()
-                .then((response) => {
-                    subscriber.next(response);
-                    subscriber.complete();
-                })
-                .catch((error) => {
-                    subscriber.error(error);
-                });
-        });
-    }
-
-    getProjectIdByProjectSlug(
-        namespace: string,
-        projectSlug: string
-    ): Observable<number> {
-        return new Observable((subscriber) => {
-            this.gitlab.Projects.search(projectSlug)
-                .then((response) => {
-                    const project = response.find(
-                        (project) =>
-                            project.name.toLocaleLowerCase() ===
-                                projectSlug.toLocaleLowerCase() &&
-                            project.namespace.name.toLocaleLowerCase() ===
-                                namespace.toLocaleLowerCase()
-                    );
-                    if (project) {
-                        subscriber.next(project.id);
-                        subscriber.complete();
-                    } else {
-                        subscriber.error(
-                            new Error(
-                                `Project "${projectSlug}" not found in "${namespace}"`
-                            )
-                        );
-                    }
-                })
-                .catch((error) => {
-                    subscriber.error(error);
-                });
-        });
+    ): Promise<Types.MergeRequestSchema> {
+        return this.gitlab.MergeRequests.changes(projectId, mergeRequestId);
     }
 
     getMergeRequestApprovalRules(

@@ -26,12 +26,13 @@
                         "activeTab",
                         "scripting",
                         "webNavigation",
-                        "storage"
+                        "storage",
+                        "tabs"
                     ],
                     "host_permissions": ["http://*/", "https://*/"],
                     "web_accessible_resources": [
                         {
-                            "resources": ["index.html", "*.js"],
+                            "resources": ["config.html", "index.html", "*.js"],
                             "matches": ["https://gitlab.showpad.io/*"]
                         }
                     ],
@@ -42,50 +43,19 @@
                         },
                         "type": "module"
                     },
-                    "content": {
-                        "input": "content.ts",
-                        "output": "content.js"
-                    }
-                }
-            },
-            "configurations": {
-                "production": {
-                    "budgets": [
+                    "screens": ["config.html"],
+                    "scripts": [
                         {
-                            "type": "initial",
-                            "maximumWarning": "500kb",
-                            "maximumError": "1mb"
+                            "input": "content.ts",
+                            "output": "content.js"
                         },
                         {
-                            "type": "anyComponentStyle",
-                            "maximumWarning": "2kb",
-                            "maximumError": "4kb"
+                            "input": "config.ts",
+                            "output": "config.js"
                         }
-                    ],
-                    "outputHashing": "all"
-                },
-                "development": {
-                    "buildOptimizer": false,
-                    "optimization": false,
-                    "vendorChunk": true,
-                    "extractLicenses": false,
-                    "sourceMap": true,
-                    "namedChunks": true
+                    ]
                 }
-            },
-            "defaultConfiguration": "production"
-        },
-        "serve": {
-            "executor": "@angular-devkit/build-angular:dev-server",
-            "configurations": {
-                "production": {
-                    "browserTarget": "gitlab-codeowners-browser-extension:build:production"
-                },
-                "development": {
-                    "browserTarget": "gitlab-codeowners-browser-extension:build:development"
-                }
-            },
-            "defaultConfiguration": "development"
+            }
         },
         "lint": {
             "executor": "@nrwl/linter:eslint",
