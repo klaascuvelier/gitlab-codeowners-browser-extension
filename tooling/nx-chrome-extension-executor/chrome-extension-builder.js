@@ -1,26 +1,29 @@
-const { createBuilder } = require('@angular-devkit/architect');
-const { executeBrowserBuilder } = require('@angular-devkit/build-angular');
-const { tap, from, switchMap, forkJoin, map, Observable } = require('rxjs');
-const { writeFile, readdir, readFile } = require('node:fs/promises');
+const { writeFile, mkdir, copyFile } = require('node:fs/promises');
 const { join } = require('node:path');
 const { exec } = require('node:child_process');
-const { combineOptionsForExecutor } = require('nx/src/utils/params');
+const { createBuilder } = require('@angular-devkit/architect');
+const {
+    webpackExecutor,
+} = require('@nrwl/node/src/executors/webpack/webpack.impl.js');
 
-const chromeExtensionBuilder = (options, context) => {
-    return executeBrowserBuilder(options, context).pipe(
-        switchMap((result) => createManifest(options, result)),
-        switchMap(() => createServiceWorker(options)),
-        switchMap(() => createContentFile(options)),
-        map(() => {
-            return { success: true };
-        })
-    );
-};
+async function chromeExtensionBuilder(options, context) {
+    context.logger.info('🚀 Building Chrome Extension');
+
+    await mkdir(options.outputPath, { recursive: true });
+    await Promise.all([
+        createManifest(options),
+        createServiceWorker(options),
+        createScripts(options),
+        createScreens(options),
+    ]);
+
+    return { success: true };
+}
 
 exports.chromeExtensionBuilder = chromeExtensionBuilder;
 exports.default = createBuilder(chromeExtensionBuilder);
 
-function createManifest(options) {
+async function createManifest(options) {
     const packageJsonPath = join(__dirname, '../..', 'package.json');
     const manifestPath = join(options.outputPath, 'manifest.json');
     const packageJsonVersion = require(packageJsonPath).version;
@@ -33,9 +36,10 @@ function createManifest(options) {
         version: packageJsonVersion,
         permissions: extensionDetails.permissions,
         host_permissions: extensionDetails.host_permissions,
+        content_security_policy: extensionDetails.content_security_policy,
         web_accessible_resources: extensionDetails.web_accessible_resources,
         action: {
-            default_popup: 'index.html?popup=1',
+            default_popup: 'config.html',
         },
         background: {
             service_worker: extensionDetails.background.service_worker.output,
@@ -43,26 +47,24 @@ function createManifest(options) {
         },
     };
 
-    return from(
-        writeFile(manifestPath, JSON.stringify(manifestContent, null, 2))
-    ).pipe(tap(() => console.log('✅ Wrote manifest.json')));
+    return writeFile(
+        manifestPath,
+        JSON.stringify(manifestContent, null, 2)
+    ).then(() => console.log('✅ Wrote manifest.json'));
 }
 
-function createContentFile(options) {
-    const swSourcePath = join(
-        options.main,
-        '..',
-        options.extensionDetails.content.input
-    );
-    const swOutputPath = join(
-        options.outputPath,
-        options.extensionDetails.content.output
-    );
+async function createScripts(options) {
+    return await Promise.all(
+        options.extensionDetails.scripts.map((script) => {
+            const swSourcePath = join(options.main, '..', script.input);
+            const swOutputPath = join(options.outputPath, script.output);
 
-    return bundleScript(swSourcePath, swOutputPath);
+            return bundleScript(swSourcePath, swOutputPath);
+        })
+    );
 }
 
-function createServiceWorker(options) {
+async function createServiceWorker(options) {
     const swSourcePath = join(
         options.main,
         '..',
@@ -76,17 +78,32 @@ function createServiceWorker(options) {
     return bundleScript(swSourcePath, swOutputPath);
 }
 
+async function createScreens(options) {
+    return Promise.all(
+        options.extensionDetails.screens.map((screen) => {
+            const screenSourcePath = join(options.main, '..', screen);
+            const screenOutputPath = join(options.outputPath, screen);
+
+            return copyFile(screenSourcePath, screenOutputPath).then(() =>
+                console.log(`✅ Wrote ${screen}`)
+            );
+        })
+    );
+}
+
 function bundleScript(input, output) {
-    return new Observable((observer) => {
-        exec(`npx esbuild ${input} --bundle --outfile=${output}`, (err) => {
-            if (err) {
-                observer.error(err);
-                observer.complete();
-            } else {
-                console.log(`✅ Wrote ${output}`);
-                observer.next();
-                observer.complete();
+    return new Promise((resolve, reject) => {
+        exec(
+            `npx esbuild ${input} --bundle  --outfile=${output} --platform=browser`,
+
+            (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log(`✅ Wrote ${output}`);
+                    resolve();
+                }
             }
-        });
+        );
     });
 }
